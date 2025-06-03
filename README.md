@@ -22,8 +22,6 @@ A clean and efficient Flutter ToDo List application featuring task creation, edi
 |-------------|----------|---------------|--------------|
 | ![Home](assets/screenshots/home.jpg) | ![Add Task](assets/screenshots/add_task.jpg) | ![Sort](assets/screenshots/sort_search.jpg) | ![Search Task](assets/screenshots/search_opt.jpg) |
 
-> ⚠️ Make sure the images are located in the `assets/screenshots/` folder in your project repo and update the filenames accordingly.
-
 ---
 
 ## 🛠️ Tech Stack
