@@ -55,26 +55,34 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   void _pickDueDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-
-    if (date != null) {
-      final time = await showTimePicker(
+    try {
+      final date = await showDatePicker(
         context: context,
-        initialTime: TimeOfDay.fromDateTime(_dueDate ?? DateTime.now()),
+        initialDate: _dueDate ?? DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime(2100),
       );
 
-      if (time != null) {
-        setState(() {
-          _dueDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-        });
+      if (date != null) {
+        final time = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay.fromDateTime(_dueDate ?? DateTime.now()),
+        );
+
+        if (time != null) {
+          setState(() {
+            _dueDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+          });
+        }
       }
+    } catch (e) {
+      debugPrint("Error picking date/time: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to pick date/time")),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -144,4 +152,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
+
 }

@@ -1,7 +1,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:provider/provider.dart';
 import '../models/task.dart';
+import '../models/task_view_model.dart';
 import 'add_task_screen.dart';
 import 'package:intl/intl.dart';
 import '../utils/notification_helper.dart';
@@ -15,47 +17,22 @@ class HomeScreen extends StatefulWidget {
 
 enum SortBy { priority, dueDate, createdAt }
 
-TextEditingController _searchController = TextEditingController();
-String _searchKeyword = '';
-
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Task> tasks = [];
 
-  SortBy _sortBy = SortBy.createdAt;
-
-  List<Task> get _sortedTasks {
-    List<Task> filtered = tasks.where((task) {
-      final query = _searchKeyword.toLowerCase();
-      return task.title.toLowerCase().contains(query) ||
-          task.description.toLowerCase().contains(query);
-    }).toList();
-
-    switch (_sortBy) {
-      case SortBy.priority:
-        filtered.sort((a, b) => b.priority.index.compareTo(a.priority.index));
-        break;
-      case SortBy.dueDate:
-        filtered.sort((a, b) => a.dueDate.compareTo(b.dueDate));
-        break;
-      case SortBy.createdAt:
-        filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        break;
-    }
-
-    return filtered;
-  }
+  TextEditingController _searchController = TextEditingController();
 
 
 
   void _addNewTask(Task newTask) {
-    final box = Hive.box<Task>('tasksBox');
-    setState(() {
-      tasks.add(newTask);
-      box.put(newTask.id, newTask);
-      NotificationHelper.scheduleNotification(newTask);
-    });
+    try {
+      Provider.of<TaskViewModel>(context, listen: false).addTask(newTask);
+    } catch (e) {
+      debugPrint('Error adding task: $e');
+    }
   }
+
+
 
 
 
@@ -93,24 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
               builder: (_) => AddTaskScreen(
                 existingTask: task,
                 onSave: (updatedTask) {
-                  final box = Hive.box<Task>('tasksBox');
-                  setState(() {
-                    int index = tasks.indexWhere((t) => t.id == updatedTask.id);
-                    if (index != -1) {
-                      tasks[index] = updatedTask;
-                      box.put(updatedTask.id, updatedTask);
-                      NotificationHelper.scheduleNotification(updatedTask); // reschedule
-                    }
-                  });
+                  Provider.of<TaskViewModel>(context, listen: false).updateTask(updatedTask);
                 },
-
                 onDelete: () {
-                  final box = Hive.box<Task>('tasksBox');
-                  setState(() {
-                    tasks.removeWhere((t) => t.id == task.id);
-                    box.delete(task.id);
-                    NotificationHelper.cancelNotification(task);
-                  });
+                  Provider.of<TaskViewModel>(context, listen: false).deleteTask(task);
                 },
 
               ),
@@ -124,8 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    final box = Hive.box<Task>('tasksBox');
-    tasks = box.values.toList();
   }
 
 
@@ -146,10 +107,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                setState(() {
-                  _searchKeyword = value;
-                });
+                Provider.of<TaskViewModel>(context, listen: false).setSearchKeyword(value);
               },
+
             ),
           ),
 
@@ -157,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: DropdownButtonFormField<SortBy>(
               decoration: const InputDecoration(labelText: "Sort by"),
-              value: _sortBy,
+              value: context.watch<TaskViewModel>().sortBy,
               items: SortBy.values.map((s) {
                 return DropdownMenuItem(
                   value: s,
@@ -165,21 +125,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }).toList(),
               onChanged: (value) {
-                setState(() {
-                  _sortBy = value!;
-                });
+                Provider.of<TaskViewModel>(context, listen: false).setSortBy(value!);
               },
+
             ),
           ),
           Expanded(
-            child: _sortedTasks.isEmpty
-                ? const Center(child: Text("No tasks added yet."))
-                : ListView.builder(
-              itemCount: _sortedTasks.length,
-              itemBuilder: (context, index) =>
-                  _buildTaskItem(_sortedTasks[index]),
+            child: Consumer<TaskViewModel>(
+              builder: (context, taskVM, child) {
+                final tasks = taskVM.sortedTasks;
+                if (tasks.isEmpty) {
+                  return const Center(child: Text("No tasks added yet."));
+                }
+                return ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) => _buildTaskItem(tasks[index]),
+                );
+              },
             ),
           ),
+
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -196,6 +161,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
 }
