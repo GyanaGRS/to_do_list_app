@@ -18,7 +18,7 @@ A clean and efficient Flutter ToDo List application featuring task creation, edi
 
 ## 📷 Screenshots
 
-| Home Screen | Add Task | Sort & Search | Notification |
+| Home Screen | Add Task | Sort | Search |
 |-------------|----------|---------------|--------------|
 | ![Home](assets/screenshots/home.jpg) | ![Add Task](assets/screenshots/add_task.jpg) | ![Sort](assets/screenshots/sort_search.jpg) | ![Search Task](assets/screenshots/search_opt.jpg) |
 
